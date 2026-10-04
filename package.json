@@ -1,0 +1,37 @@
+{
+  "name": "gopay-api",
+  "version": "1.0.0",
+  "description": "QRIS payment gateway for GoPay Merchant (GoBiz) with dynamic QRIS and automatic settlement reconciliation",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./gateway": "./src/gateway.js"
+  },
+  "bin": {
+    "gopay-api": "./bin/cli.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "login": "node bin/cli.js login",
+    "whoami": "node bin/cli.js whoami",
+    "merchants": "node bin/cli.js merchants",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "qris",
+    "gopay",
+    "gopay-merchant",
+    "gobiz",
+    "payment-gateway",
+    "indonesia"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "merchantid": "^0.1.1",
+    "qrcode": "^1.5.4"
+  }
+}

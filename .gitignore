@@ -1,5 +1,19 @@
-# Cache objects
-packer_cache/
+node_modules/
 
-# For built boxes
-*.box
+# Kredensial merchant dan data pembayaran. Jangan pernah di-commit.
+.env
+.env.*
+!.env.example
+.data/
+
+# Hasil render QRIS dari pengujian lokal memuat id merchant.
+qris-*.png
+qris-*.svg
+
+*.log
+npm-debug.log*
+
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
