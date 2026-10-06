@@ -1,15 +1,22 @@
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
-import { GoPayGateway } from './gateway.js';
+import { readFileSync } from 'node:fs';
+import { extname, join, normalize } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { GoPayGateway, serializePayment } from './gateway.js';
 import { config } from './config.js';
 import { verifyWebhook } from './webhook.js';
+import { renderQrPng } from './qr.js';
 
 /**
  * REST API untuk payment gateway.
  *
  * Endpoint:
+ *   GET    /                  halaman kasir
  *   POST   /payments          buat pembayaran, kembalikan QRIS
+ *   GET    /payments          daftar pembayaran terbaru
  *   GET    /payments/:id      status satu pembayaran
+ *   GET    /payments/:id/qr.png
  *   POST   /payments/:id/cancel
  *   GET    /health
  *   POST   /webhooks/verify  contoh receiver untuk menguji signature
@@ -57,10 +64,47 @@ export function createApp({
         return json(res, 201, payment);
       }
 
+      // Halaman kasir. File statis dibaca dari disk, bukan dibundel, supaya
+      // perubahan markup langsung terlihat tanpa rebuild.
+      if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
+        return sendFile(res, WEB_DIR, 'index.html');
+      }
+
+      if (req.method === 'GET' && url.pathname === '/app.js') {
+        return sendFile(res, WEB_DIR, 'app.js');
+      }
+
+      if (req.method === 'GET' && url.pathname === '/hero.js') {
+        return sendFile(res, WEB_DIR, 'hero.js');
+      }
+
+      if (req.method === 'GET' && url.pathname === '/style.css') {
+        return sendFile(res, WEB_DIR, 'style.css');
+      }
+
+      if (req.method === 'GET' && url.pathname === '/payments') {
+        const semua = gateway.store.all();
+        const urut = [...semua].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        return json(res, 200, urut.map(serializePayment));
+      }
+
       const paymentMatch = url.pathname.match(/^\/payments\/([^/]+)$/);
       if (req.method === 'GET' && paymentMatch) {
         const payment = await gateway.getPayment(paymentMatch[1]);
         return payment ? json(res, 200, payment) : json(res, 404, { error: 'not_found' });
+      }
+
+      const qrMatch = url.pathname.match(/^\/payments\/([^/]+)\/qr\.png$/);
+      if (req.method === 'GET' && qrMatch) {
+        const payment = await gateway.getPayment(qrMatch[1]);
+        if (!payment) return json(res, 404, { error: 'not_found' });
+        const png = await renderQrPng(payment.qrString, { width: 640 });
+        res.writeHead(200, {
+          'content-type': 'image/png',
+          'content-length': png.length,
+          'cache-control': 'no-store',
+        });
+        return res.end(png);
       }
 
       const cancelMatch = url.pathname.match(/^\/payments\/([^/]+)\/cancel$/);
@@ -133,6 +177,40 @@ async function readRaw(req) {
     chunks.push(chunk);
   }
   return Buffer.concat(chunks).toString('utf8');
+}
+
+const WEB_DIR = fileURLToPath(new URL('../web/', import.meta.url));
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+};
+
+/**
+ * Kirim satu file statis dari `dir`.
+ *
+ * `normalize` dipakai supaya `..` di path tidak bisa keluar dari `dir`. Nama
+ * file sudah dicek ke daftar Route di atas, tapi tetap dibatasi di sini supaya
+ * fungsi ini aman kalau nanti dipakai ulang.
+ */
+function sendFile(res, dir, name) {
+  const target = join(dir, normalize(name));
+  if (!target.startsWith(dir)) return json(res, 400, { error: 'bad_path' });
+
+  let body;
+  try {
+    body = readFileSync(target);
+  } catch {
+    return json(res, 404, { error: 'not_found' });
+  }
+
+  res.writeHead(200, {
+    'content-type': MIME[extname(target)] ?? 'application/octet-stream',
+    'content-length': body.length,
+    'cache-control': 'no-store',
+  });
+  res.end(body);
 }
 
 function json(res, status, payload) {

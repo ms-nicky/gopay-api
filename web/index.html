@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasir QRIS</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<!--
+  Hero opsional. src video sengaja kosong: isi path ke file lokal kalau ada.
+  Tanpa src, hero jadi panel statis dan halaman tidak pernah terkunci.
+-->
+<section class="hero" data-hero data-hero-video="" aria-labelledby="judul-hero" hidden>
+  <video data-hero-video class="hero__video" muted playsinline preload="metadata" aria-hidden="true"></video>
+  <div class="hero__gradasi"></div>
+  <p class="hero__judul" data-hero-judul id="judul-hero">Kasir QRIS</p>
+  <p class="hero__tagline" data-hero-tagline>Masukkan nominal, QRIS langsung terbit.</p>
+  <div class="hero__hint" data-hero-hint aria-hidden="true">
+    <span>GULIR</span>
+  </div>
+  <div class="hero__bar" aria-hidden="true"><div data-hero-bar class="hero__barIsi"></div></div>
+</section>
+
+<main class="app">
+
+  <section class="panel" aria-labelledby="judul-buat">
+    <h1 id="judul-buat">Buat pembayaran</h1>
+    <p class="panel__note">Masukkan nominal, lalu QRIS dibuat untuk pembayaran itu.</p>
+
+    <form id="form-buat" novalidate>
+      <div class="field">
+        <label for="input-nominal">Nominal (Rp)</label>
+        <input id="input-nominal" name="nominal" type="text" inputmode="numeric"
+               autocomplete="off" placeholder="10.000" required>
+        <p class="field__error" id="error-nominal" role="alert" hidden></p>
+      </div>
+
+      <div class="field">
+        <label for="input-ref">Referensi <span class="field__opsional">opsional</span></label>
+        <input id="input-ref" name="referensi" type="text" autocomplete="off"
+               placeholder="INV-001">
+      </div>
+
+      <button type="submit" class="tombol tombol--utama" id="tombol-buat">
+        Buat QRIS
+      </button>
+      <p class="form-status" id="status-buat" role="status"></p>
+    </form>
+  </section>
+
+  <section class="panel" aria-labelledby="judul-hasil">
+    <h2 id="judul-hasil">Pembayaran berjalan</h2>
+
+    <div class="kosong" id="panel-kosong">
+      <p>Belum ada pembayaran aktif.</p>
+      <p class="kosong__saran">Isi nominal di sebelah untuk memulai.</p>
+    </div>
+
+    <div class="muat" id="panel-muat" hidden>
+      <span class="muat__spinner" aria-hidden="true"></span>
+      <p>Membuat QRIS dan menunggu pembayaran masuk.</p>
+    </div>
+
+    <div class="gagal" id="panel-gagal" role="alert" hidden>
+      <p id="pesan-gagal"></p>
+      <button type="button" class="tombol" id="tombol-coba">Coba lagi</button>
+    </div>
+
+    <div class="hasil" id="panel-hasil" hidden>
+      <div class="hasil__kiri">
+        <img id="gambar-qris" class="hasil__qr" alt="QRIS pembayaran" width="320" height="320">
+        <p class="hasil__keterangan">Pemohon pindai dengan aplikasi pembayaran apa pun.</p>
+      </div>
+
+      <div class="hasil__kanan">
+        <p class="label">PEMBAYAR MASAKAN DIBAYAR</p>
+        <p class="nominal-bayar" id="nominal-bayar"></p>
+        <p class="nominal-asli" id="nominal-asli"></p>
+
+        <dl class="rincian">
+          <div class="rincian__baris">
+            <dt>Status</dt>
+            <dd><span class="status" id="status-bayar">menunggu</span></dd>
+          </div>
+          <div class="rincian__baris">
+            <dt>Batas bayar</dt>
+            <dd id="batas-bayar"></dd>
+          </div>
+          <div class="rincian__baris" id="baris-transaksi" hidden>
+            <dt>Id transaksi</dt>
+            <dd class="mono" id="id-transaksi"></dd>
+          </div>
+        </dl>
+
+        <button type="button" class="tombol tombol--batal" id="tombol-batal">
+          Batalkan pembayaran
+        </button>
+        <p class="form-status" id="status-aksi" role="status"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="judul-riwayat">
+    <h2 id="judul-riwayat">Riwayat</h2>
+    <div id="riwayat-kosong" class="kosong kosong--kecil">
+      <p>Belum ada pembayaran tercatat.</p>
+    </div>
+    <ul class="riwayat" id="daftar-riwayat"></ul>
+  </section>
+
+</main>
+<script src="/app.js" type="module"></script>
+</body>
+</html>

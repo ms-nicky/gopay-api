@@ -130,6 +130,53 @@ test('rute yang tidak dikenal membalas 404', async () => {
   });
 });
 
+test('halaman kasir dan asetnya tersaji dengan content-type yang benar', async () => {
+  await withServer(async ({ base }) => {
+    const halaman = await fetch(`${base}/`);
+    assert.equal(halaman.status, 200);
+    assert.match(halaman.headers.get('content-type'), /text\/html/);
+    assert.match(await halaman.text(), /<title>Kasir QRIS<\/title>/);
+
+    const css = await fetch(`${base}/style.css`);
+    assert.match(css.headers.get('content-type'), /text\/css/);
+
+    const js = await fetch(`${base}/app.js`);
+    assert.match(js.headers.get('content-type'), /javascript/);
+  });
+});
+
+test('qr.png merender payload pembayaran yang disimpan', async () => {
+  await withServer(async ({ base }) => {
+    const created = await (await post(base, '/payments', { amount: 25_000 })).json();
+    const response = await fetch(`${base}/payments/${created.id}/qr.png`);
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'image/png');
+
+    const png = Buffer.from(await response.arrayBuffer());
+    assert.deepEqual([...png.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  });
+});
+
+test('qr.png untuk pembayaran asing membalas 404', async () => {
+  await withServer(async ({ base }) => {
+    assert.equal((await fetch(`${base}/payments/tidak-ada/qr.png`)).status, 404);
+  });
+});
+
+test('GET /payments listing urut dari yang terbaru', async () => {
+  await withServer(async ({ base }) => {
+    await post(base, '/payments', { amount: 1_000, reference: 'lama' });
+    await post(base, '/payments', { amount: 2_000, reference: 'baru' });
+
+    const list = await (await fetch(`${base}/payments`)).json();
+
+    assert.equal(list.length, 2);
+    assert.equal(list[0].reference, 'baru');
+    assert.ok(new Date(list[0].createdAt) >= new Date(list[1].createdAt));
+  });
+});
+
 test('API key menolak request tanpa header yang benar', async () => {
   await withServer(
     async ({ base }) => {
