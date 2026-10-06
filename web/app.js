@@ -329,25 +329,3 @@ tombolBatal.addEventListener('click', async () => {
 
 tampilkan('kosong');
 refreshRiwayat();
-
-/**
- * Hero dijalankan setelah app.js selesai mount supaya ia tidak menunda
- * render form kasir. Import dinamis juga berarti kasir tetap jalan kalau
- * hero.js somehow gagal dimuat.
- */
-const hero = document.querySelector('[data-hero]');
-if (hero) {
-  const sumber = hero.dataset.heroVideo;
-  if (sumber) {
-    hero.querySelector('[data-hero-video]').src = sumber;
-  }
-  hero.hidden = false;
-
-  import('./hero.js')
-    .then(({ pasangHero }) => pasangHero(hero))
-    .catch(() => {
-      // Hero gagal: sisakan sebagai panel statis supaya user tetap bisa
-      // ke form kasir.
-      hero.classList.add('hero--statis');
-    });
-}

@@ -74,14 +74,6 @@ export function createApp({
         return sendFile(res, WEB_DIR, 'app.js');
       }
 
-      if (req.method === 'GET' && url.pathname === '/hero.js') {
-        return sendFile(res, WEB_DIR, 'hero.js');
-      }
-
-      if (req.method === 'GET' && url.pathname === '/hero.mp4') {
-        return sendFile(res, WEB_DIR, 'hero.mp4');
-      }
-
       if (req.method === 'GET' && url.pathname === '/style.css') {
         return sendFile(res, WEB_DIR, 'style.css');
       }
