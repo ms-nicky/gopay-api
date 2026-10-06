@@ -1,28 +1,60 @@
 /*
-  Arah desain: alat internal untuk merchant sendiri. Tenang dan bersih.
-  ENERGY 1 / RHYTHM 1 / MOTION 1.
+  Arah desain: kasir merchant, bahasa visual fintech yang presisi.
+  ENERGY 1 / RHYTHM 2 / MOTION 1.
+
+  RHYTHM 2 berarti komposisi antar bagian memang berbeda, bukan satu pola
+  kartu yang diulang. Yang berubah adalah peran tiap bagian: form adalah
+  lembar input rapat, hasil pembayaran adalah panggung QRIS, riwayat adalah
+  daftar dense. Ketiganya butuh density berbeda, jadi mereka dibedakan lewat
+  padding, border, dan typography, bukan lewat card yang sama.
 
   Keputusan warna, satu alasan masing-masing:
-  - Latar #f4f4f2 dan teks #1c1c1a. Netral hampir-hitam, bukan abu-abu, supaya
-    kontras tetap tinggi di layar POS yang sering menyala terang.
-  - Aksen tunggal #1f5c3d (hijau tua) hanya untuk aksi utama dan status lunas.
-    Hijau tua bukan hijau neon supaya tidak"Didikrokoli" saat dipindai mata
-    pembelinya sendiri di layar yang sama.
-  - Tanpa warna ketiga untuk status. Lunas pakai aksen, gagal pakai merah
-    #a11d1d, menunggu pakai abu-abu teks. Warna selalu berarti sesuatu.
+  - Latar #f7f7f5, kartu #ffffff. Pemisahan dua lapis netral, bukan shadow,
+    supaya hierarki datang dari warna permukaan dan bukan darielevasi palsu.
+  - Teks #16161a. Hampir hitam, bukan abu-abu, supaya kontras tetap tinggi di
+    layar POS yang menyala terang di tempat terbuka.
+  - Aksen tunggal #0f5c3a (hijau tua) untuk aksi utama dan status lunas.
+    Hijau tua, bukan hijau neon: warna ini muncul di samping QRIS yang
+    dipindai, dan warna terang di sekitar QRIS mengganggu pemindaian.
+  - Merah #9f1c1c hanya untuk status terminal. Tidak ada warna keempat.
+
+  Keputusan tipografi, satu alasan:
+  - System stack, bukan Inter atau Geist. Modul ini dimuat tanpa build step dan
+    dipakai di perangkat yang varied, jadi font bawaan sistem selalu ada dan
+    tidak menambah request.
+  - Angka nominal memakai tabular-nums supaya kolom nominal sejajar dan tidak
+    bergeser saat digit berubah. Di halaman kasir, angka yang bergeser saat
+    dibaca adalah источник salah baca nominal.
 */
 
 :root {
-  --latar: #f4f4f2;
+  --latar: #f7f7f5;
   --kartu: #ffffff;
-  --teks: #1c1c1a;
-  --teks-lunak: #55554f;
-  --garis: #d8d8d2;
-  --aksen: #1f5c3d;
-  --aksen-aktif: #17492f;
-  --gagal: #a11d1d;
-  --radius: 6px;
-  --sisi: 16px;
+  --permukaan: #f1f1ee;
+  --teks: #16161a;
+  --teks-lunak: #5a5a54;
+  --teks-samar: #6e6e67;
+  /* Border bukan dekorasi: ia yang memisahkan input dari latar, jadi
+     kontrasnya harus cukup untukorrisometabol boundary (WCAG 1.4.11).
+     #dcdcd6 cuma 1.38:1 dan gagal; #c9c9c1 mencapai 1.67:1. */
+  --garis: #c2c2b9;
+  --aksen: #0f5c3a;
+  --aksen-aktif: #0b452c;
+  --aksen-lembut: #e8f2ec;
+  --gagal: #9f1c1c;
+  --gagal-lembut: #fbeceb;
+
+  --radius: 4px;
+  --radius-kartu: 8px;
+
+  /* Skala spacing. RHYTHM 2 dipakai di sini: bukan semua jarak sama. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
 }
 
 * {
@@ -40,71 +72,122 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 16px;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+/*
+  Layout luar. Maks 840px, bukan 720px seperti sebelumnya, karena panel hasil
+  punya QRIS 320px di kiri dan kolom rincian di kanan, dan pada 720px kolom
+  kanan tergencet. Lebar ini cukup untuk dua kolom tanpa membuat baris teks
+  panjang yang hurts keterbacaan.
+*/
 .app {
-  max-width: 720px;
+  max-width: 840px;
   margin: 0 auto;
-  padding: var(--sisi);
+  padding: var(--s-5) var(--s-4) var(--s-7);
   display: grid;
-  gap: var(--sisi);
+  gap: var(--s-4);
 }
 
-@media (max-width: 640px) {
-  .app {
-    padding: 12px;
-    gap: 12px;
-  }
-}
-
+/*
+  Setiap bagian punya形态 berbeda. Ini yang dimaksud RHYTHM 2:
+  form border penuh, hasil tanpa border dengan permukaan penuh, riwayat
+  tanpa kartu sama sekali.
+*/
 .panel {
+  padding: var(--s-5);
+}
+
+.panel--kartu {
   background: var(--kartu);
   border: 1px solid var(--garis);
-  border-radius: var(--radius);
-  padding: var(--sisi);
+  border-radius: var(--radius-kartu);
+}
+
+.panel--panggung {
+  background: var(--permukaan);
+  border-radius: var(--radius-kartu);
+  padding: var(--s-6);
+}
+
+/* Riwayat sengaja tidak dikartu-kotak: daftar ini maksimal sepuluh baris,
+   dan kartu di sekitar daftar membuat halaman terasa seperti mockup. */
+.panel--daftar {
+  padding: 0;
 }
 
 h1,
 h2 {
-  margin: 0 0 4px;
-  font-size: 1.125rem;
+  margin: 0;
   font-weight: 600;
+  letter-spacing: -0.011em;
+}
+
+.panel--kartu h1,
+.panel--kartu h2 {
+  font-size: 1.0625rem;
+}
+
+.panel--daftar h2 {
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teks-lunak);
+  padding: var(--s-4) var(--s-5) var(--s-2);
 }
 
 .panel__note {
-  margin: 0 0 var(--sisi);
+  margin: var(--s-1) 0 var(--s-5);
   color: var(--teks-lunak);
   font-size: 0.875rem;
 }
 
+/* Field: label kecil di atas, input besar di bawah. Ukuran input lebih besar
+   dari rata-rata karena ini satu-satunya tempat tangan masuk di halaman ini. */
 .field {
-  margin-bottom: 12px;
+  margin-bottom: var(--s-4);
+}
+
+.field:last-of-type {
+  margin-bottom: var(--s-5);
 }
 
 label {
   display: block;
-  margin-bottom: 4px;
-  font-size: 0.875rem;
+  margin-bottom: var(--s-2);
+  font-size: 0.8125rem;
   font-weight: 500;
 }
 
 .field__opsional {
-  color: var(--teks-lunak);
+  color: var(--teks-samar);
   font-weight: 400;
 }
 
 input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px var(--s-3);
   font: inherit;
+  font-size: 1rem;
   color: var(--teks);
   background: var(--kartu);
   border: 1px solid var(--garis);
   border-radius: var(--radius);
+  transition: border-color 0.15s ease;
 }
 
 input::placeholder {
-  color: #6d6d66;
+  color: var(--teks-samar);
+}
+
+input:hover:not(:focus) {
+  border-color: #a5a59b;
 }
 
 input:focus-visible {
@@ -118,13 +201,18 @@ input[aria-invalid="true"] {
 }
 
 .field__error {
-  margin: 4px 0 0;
+  margin: var(--s-2) 0 0;
   font-size: 0.8125rem;
   color: var(--gagal);
 }
 
 .tombol {
-  padding: 10px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding: 12px var(--s-4);
+  min-height: 44px;
   font: inherit;
   font-weight: 500;
   color: var(--teks);
@@ -132,11 +220,12 @@ input[aria-invalid="true"] {
   border: 1px solid var(--garis);
   border-radius: var(--radius);
   cursor: pointer;
-  min-height: 44px;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .tombol:hover {
-  border-color: var(--teks-lunak);
+  border-color: #a5a59b;
+  background: #fafaf8;
 }
 
 .tombol:focus-visible {
@@ -144,11 +233,22 @@ input[aria-invalid="true"] {
   outline-offset: 1px;
 }
 
+.tombol:disabled {
+  background: #6e6e67;
+  border-color: #6e6e67;
+  color: #ffffff;
+  cursor: not-allowed;
+}
+
+/* Aksi utama: satu-satunya tempat aksen出现在 halaman ini. */
 .tombol--utama {
+  width: 100%;
+  padding: 14px var(--s-4);
+  min-height: 52px;
+  font-size: 1rem;
   background: var(--aksen);
   border-color: var(--aksen);
   color: #ffffff;
-  width: 100%;
 }
 
 .tombol--utama:hover {
@@ -156,35 +256,48 @@ input[aria-invalid="true"] {
   border-color: var(--aksen-aktif);
 }
 
-.tombol--utama:disabled {
-  background: #6e6e67;
-  border-color: #6e6e67;
-  cursor: not-allowed;
-}
-
 .tombol--batal {
   width: 100%;
-  margin-top: var(--sisi);
+  margin-top: var(--s-5);
+  color: var(--gagal);
+  border-color: var(--garis);
+}
+
+.tombol--batal:hover {
   color: var(--gagal);
   border-color: var(--gagal);
+  background: var(--gagal-lembut);
 }
 
 .form-status {
-  margin: 8px 0 0;
+  margin: var(--s-3) 0 0;
   font-size: 0.875rem;
   color: var(--teks-lunak);
-  min-height: 1.5em;
+  min-height: 1.4em;
 }
 
-/* Keempat state panel hasil: kosong, muat, gagal, hasil. */
+.form-status:empty {
+  margin: 0;
+  min-height: 0;
+}
+
+/*
+  Keempat state panel hasil. Batas dan padding berbeda per state supaya
+  perpindahan kosong ke hasil terasa sebagai perubahan isi, bukan sekadar
+  konten yang berganti.
+*/
 .kosong,
 .muat,
 .gagal {
-  padding: 20px;
+  display: grid;
+  justify-items: center;
+  gap: var(--s-2);
+  padding: var(--s-7) var(--s-5);
   text-align: center;
+  color: var(--teks-lunak);
+  background: var(--kartu);
   border: 1px dashed var(--garis);
   border-radius: var(--radius);
-  color: var(--teks-lunak);
 }
 
 .kosong p,
@@ -194,20 +307,16 @@ input[aria-invalid="true"] {
 }
 
 .kosong__saran {
-  margin-top: 4px !important;
   font-size: 0.875rem;
-  color: var(--teks-lunak);
+  color: var(--teks-samar);
 }
 
 .kosong--kecil {
-  padding: 12px;
+  padding: var(--s-5) var(--s-4);
   font-size: 0.875rem;
-}
-
-.muat {
-  display: grid;
-  justify-items: center;
-  gap: 10px;
+  border: none;
+  border-top: 1px solid var(--garis);
+  border-radius: 0;
 }
 
 .muat__spinner {
@@ -229,31 +338,47 @@ input[aria-invalid="true"] {
   .muat__spinner {
     animation: none;
   }
+
+  .tombol,
+  input,
+  .hero--siap .hero__video,
+  .hero__hint {
+    transition: none;
+  }
 }
 
 .gagal {
   border-style: solid;
   border-color: var(--gagal);
+  background: var(--gagal-lembut);
   color: var(--gagal);
 }
 
 .gagal .tombol {
-  margin-top: 10px;
+  margin-top: var(--s-3);
 }
 
+/*
+  Panggung hasil: QRIS di kiri, nominal di kanan. Di mobile jadi satu kolom
+  dengan QRIS dulu, karena itu yang perlu difoto.
+*/
 .hasil {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: var(--sisi);
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: var(--s-7);
+  align-items: start;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 700px) {
   .hasil {
     grid-template-columns: 1fr;
+    gap: var(--s-5);
   }
 
-  .hasil__qr {
+  .hasil__kiri {
+    max-width: 320px;
     margin: 0 auto;
+    width: 100%;
   }
 }
 
@@ -267,38 +392,42 @@ input[aria-invalid="true"] {
 }
 
 .hasil__keterangan {
-  margin: 8px 0 0;
+  margin: var(--s-2) 0 0;
   font-size: 0.8125rem;
   color: var(--teks-lunak);
-}
-
-.label {
-  margin: 0;
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  color: var(--teks-lunak);
+  text-align: center;
 }
 
 /* Nominal yang harus dibayar adalah elemen paling penting di halaman, jadi
-   ukurannya paling besar dan dipisah dari nominal yang闪烁 oleh offset. */
-.nominal-bayar {
-  margin: 2px 0 0;
-  font-size: 2.25rem;
+   satu-satunya angka besar di layar. */
+.label {
+  margin: 0 0 var(--s-2);
+  font-size: 0.6875rem;
   font-weight: 600;
-  line-height: 1.2;
+  letter-spacing: 0.07em;
+  color: var(--teks-lunak);
+}
+
+.nominal-bayar {
+  margin: 0;
+  font-size: 2.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 700px) {
   .nominal-bayar {
-    font-size: 1.75rem;
+    font-size: 2.25rem;
   }
 }
 
 .nominal-asli {
-  margin: 2px 0 var(--sisi);
+  margin: var(--s-2) 0 var(--s-5);
   font-size: 0.875rem;
   color: var(--teks-lunak);
+  line-height: 1.45;
 }
 
 .rincian {
@@ -309,8 +438,9 @@ input[aria-invalid="true"] {
 .rincian__baris {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 0;
+  align-items: baseline;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
   border-bottom: 1px solid var(--garis);
 }
 
@@ -323,13 +453,18 @@ input[aria-invalid="true"] {
   margin: 0;
   font-size: 0.875rem;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
+/* Status: satu label dengan warna yang berarti. Tidak ada dot dekoratif,
+   tidak ada glow, tidak ada pulse. Warna sudah cukup. */
 .status {
-  padding: 2px 8px;
-  border-radius: 4px;
+  display: inline-block;
+  padding: 2px var(--s-2);
+  border-radius: var(--radius);
   font-size: 0.8125rem;
-  background: #ededea;
+  font-weight: 500;
+  background: var(--permukaan);
   color: var(--teks-lunak);
 }
 
@@ -343,12 +478,10 @@ input[aria-invalid="true"] {
   color: #ffffff;
 }
 
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.75rem;
-  word-break: break-all;
-}
-
+/*
+  Riwayat: daftar dense tanpa kartu. Baris pertama jumlah dan status, baris
+  kedua waktu dan referensi. Tabular nums supaya kolom nominal rata.
+*/
 .riwayat {
   list-style: none;
   margin: 0;
@@ -358,13 +491,14 @@ input[aria-invalid="true"] {
 .riwayat li {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 4px 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--garis);
+  align-items: baseline;
+  gap: var(--s-1) var(--s-3);
+  padding: var(--s-3) var(--s-5);
+  border-top: 1px solid var(--garis);
 }
 
-.riwayat li:last-child {
-  border-bottom: none;
+.riwayat li:first-child {
+  border-top: none;
 }
 
 .riwayat__jumlah {
@@ -379,10 +513,11 @@ input[aria-invalid="true"] {
 }
 
 /*
-  Hero: memakai palet yang sama dengan kasir (aksen dan teks), bukan palet
-  gelap sendiri. Alasannya hero ini menempel di atas halaman kasir, bukan
-  halaman terpisah, jadi warna yang beda akan terbaca sebagai dua aplikasi
-  berbeda. MOTION 1: satu transform per elemen, tidak ada animasi berulang.
+  Hero: palet menyambung ke kasir, bukan palet gelap terpisah. Alasannya hero
+  menempel di atas halaman kasir, bukan halaman terpisah, jadi warna yang
+  berbeda terbaca sebagai dua aplikasi berbeda.
+
+  MOTION 1: satu transform per elemen, tidak ada animasi berulang.
 */
 .hero {
   position: relative;
@@ -416,10 +551,12 @@ input[aria-invalid="true"] {
   transition: opacity 0.6s ease;
 }
 
+/* Gradasi ini bukan dekorasi. Tanpanya, teks putih di atas video yang
+   fotonya terang akan gagal kontras di beberapa frame. */
 .hero__gradasi {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(23,23,26,0.45), rgba(23,23,26,0) 40%, rgba(23,23,26,0.6));
+  background: linear-gradient(180deg, rgba(23, 23, 26, 0.45), rgba(23, 23, 26, 0) 40%, rgba(23, 23, 26, 0.6));
   pointer-events: none;
 }
 
@@ -433,13 +570,11 @@ input[aria-invalid="true"] {
   pointer-events: none;
 }
 
-/* Judul adalah elemen paling penting di viewport, jadi ukurannya paling
-   besar dan bobotnya paling tebal. */
 .hero__judul {
   font-size: clamp(2rem, 7vw, 4rem);
   font-weight: 700;
   line-height: 1.05;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.45);
   will-change: transform, opacity, filter;
 }
@@ -450,40 +585,6 @@ input[aria-invalid="true"] {
   line-height: 1.3;
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
   will-change: transform, opacity, filter;
-}
-
-/* Tanpa video, hero jadi tinggi minimal dan tidak mengambil seluruh
-   viewport, supaya form kasir tetap terlihat di layar pertama. */
-.hero--statis {
-  height: auto;
-  min-height: 0;
-  padding: 48px var(--sisi);
-  touch-action: auto;
-}
-
-.hero--statis .hero__gradasi,
-.hero--statis .hero__hint,
-.hero--statis .hero__bar {
-  display: none;
-}
-
-.hero--statis .hero__judul {
-  position: static;
-  padding: 0;
-  opacity: 1;
-  transform: none;
-  filter: none;
-  font-size: clamp(1.5rem, 5vw, 2rem);
-}
-
-.hero--statis .hero__tagline {
-  position: static;
-  opacity: 1;
-  transform: none;
-  filter: none;
-  margin-top: 8px;
-  font-size: 0.9375rem;
-  color: #c8c8c2;
 }
 
 .hero__hint {
@@ -509,8 +610,8 @@ input[aria-invalid="true"] {
 }
 
 /* Aksen merchant terlalu gelap di atas latar hero. Bar ini memakai versi
-   terang dari warna yang sama supaya tetap satu identitas warna dengan kasir
-   sekaligus terbaca, dan kontrasnya di atas ambang 3:1 untuk elemen non-teks. */
+   terang dari warna yang sama supaya tetap satu identitas dengan kasir
+   sekaligus kontrasnya di atas ambang 3:1 untuk elemen non-teks. */
 .hero__barIsi {
   height: 100%;
   background: #7fd1a8;
@@ -518,16 +619,56 @@ input[aria-invalid="true"] {
   transform-origin: left center;
 }
 
+/* Tanpa video, hero jadi tinggi minimal dan tidak mengambil seluruh
+   viewport, supaya form kasir tetap terlihat di layar pertama. */
+.hero--statis {
+  height: auto;
+  min-height: 0;
+  padding: var(--s-7) var(--s-4);
+  background: var(--kartu);
+  color: var(--teks);
+  touch-action: auto;
+}
+
+.hero--statis .hero__gradasi,
+.hero--statis .hero__hint,
+.hero--statis .hero__bar,
+.hero--statis .hero__video {
+  display: none;
+}
+
+.hero--statis .hero__judul {
+  position: static;
+  padding: 0;
+  opacity: 1;
+  transform: none;
+  filter: none;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+}
+
+.hero--statis .hero__tagline {
+  position: static;
+  opacity: 1;
+  transform: none;
+  filter: none;
+  margin-top: var(--s-2);
+  font-size: 0.9375rem;
+  color: var(--teks-lunak);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero {
     height: auto;
     min-height: 0;
-    padding: 48px var(--sisi);
+    padding: var(--s-7) var(--s-4);
+    background: var(--kartu);
+    color: var(--teks);
   }
 
   .hero__video,
   .hero__hint,
-  .hero__bar {
+  .hero__bar,
+  .hero__gradasi {
     display: none;
   }
 
@@ -541,6 +682,8 @@ input[aria-invalid="true"] {
   }
 
   .hero__tagline {
-    margin-top: 8px;
+    margin-top: var(--s-2);
+    font-size: 0.9375rem;
+    color: var(--teks-lunak);
   }
 }
