@@ -55,6 +55,12 @@ npm start
 
 ## Endpoint REST
 
+Dashboard merchant tersedia di `http://localhost:3000/dashboard`. Dashboard
+memuat pembayaran secara langsung, mencatat pengeluaran ke file
+`./.data/expenses.json`, menampilkan grafik arus kas, membuat QRIS, dan
+mengekspor laporan CSV. Jika `API_KEY` disetel, masukkan key di dashboard;
+key hanya disimpan untuk sesi tab browser tersebut.
+
 ```bash
 # Buat pembayaran
 curl -X POST localhost:3000/payments \
@@ -84,9 +90,16 @@ harus dibayar, bukan `baseAmount`.
 | Method | Path | Keterangan |
 |---|---|---|
 | `POST` | `/payments` | Buat pembayaran, kembalikan QRIS |
+| `GET` | `/payments` | Daftar pembayaran terbaru |
 | `GET` | `/payments/:id` | Status satu pembayaran |
 | `POST` | `/payments/:id/cancel` | Batalkan yang masih pending |
+| `GET` | `/expenses` | Daftar pengeluaran |
+| `POST` | `/expenses` | Catat pengeluaran (`amount`, `description`, opsional `category`) |
+| `DELETE` | `/expenses/:id` | Hapus catatan pengeluaran |
 | `GET` | `/health` | Health check |
+
+Endpoint API selain health check dan aset halaman memerlukan header `x-api-key`
+apabila `API_KEY` dikonfigurasi.
 
 ## Webhook
 

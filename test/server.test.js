@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp, handleWebhook } from '../src/server.js';
 import { GoPayGateway } from '../src/gateway.js';
+import { JsonExpenseStore } from '../src/expenses.js';
 import { createHmac } from 'node:crypto';
 
 const silent = { debug() {}, info() {}, warn() {}, error() {} };
@@ -30,7 +31,13 @@ async function withServer(fn, { apiKey, webhookSecret } = {}) {
     logger: silent,
   });
 
-  const server = createApp({ gateway, logger: silent, apiKey, webhookSecret });
+  const server = createApp({
+    gateway,
+    logger: silent,
+    apiKey,
+    webhookSecret,
+    expenseStore: new JsonExpenseStore(join(dir, 'expenses.json')),
+  });
   await new Promise((resolve) => server.listen(0, resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
 
@@ -135,13 +142,18 @@ test('halaman kasir dan asetnya tersaji dengan content-type yang benar', async (
     const halaman = await fetch(`${base}/`);
     assert.equal(halaman.status, 200);
     assert.match(halaman.headers.get('content-type'), /text\/html/);
-    assert.match(await halaman.text(), /<title>Kasir QRIS<\/title>/);
+    assert.match(await halaman.text(), /<title>FlowPay \| Payment Gateway<\/title>/);
 
     const css = await fetch(`${base}/style.css`);
     assert.match(css.headers.get('content-type'), /text\/css/);
 
     const js = await fetch(`${base}/app.js`);
     assert.match(js.headers.get('content-type'), /javascript/);
+
+    const dashboard = await fetch(`${base}/dashboard`);
+    assert.match(await dashboard.text(), /id="expense-form"/);
+    const dashboardJs = await fetch(`${base}/dashboard.js`);
+    assert.match(dashboardJs.headers.get('content-type'), /javascript/);
   });
 });
 
@@ -177,10 +189,42 @@ test('GET /payments listing urut dari yang terbaru', async () => {
   });
 });
 
+test('pengeluaran dapat dicatat, dibaca, dihapus, dan tersimpan', async () => {
+  await withServer(async ({ base }) => {
+    const createdResponse = await post(base, '/expenses', {
+      amount: 125_000,
+      description: 'Biaya server',
+      category: 'Infrastruktur',
+    });
+    assert.equal(createdResponse.status, 201);
+    const created = await createdResponse.json();
+    assert.equal(created.amount, 125_000);
+    assert.equal(created.description, 'Biaya server');
+
+    const list = await (await fetch(`${base}/expenses`)).json();
+    assert.equal(list.length, 1);
+    assert.equal(list[0].id, created.id);
+
+    const deleted = await fetch(`${base}/expenses/${created.id}`, { method: 'DELETE' });
+    assert.equal(deleted.status, 200);
+    assert.equal((await (await fetch(`${base}/expenses`)).json()).length, 0);
+  });
+});
+
+test('POST /expenses menolak data tidak valid', async () => {
+  await withServer(async ({ base }) => {
+    const response = await post(base, '/expenses', { amount: -10, description: '' });
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error, 'invalid_expense');
+  });
+});
+
 test('API key menolak request tanpa header yang benar', async () => {
   await withServer(
     async ({ base }) => {
       assert.equal((await fetch(`${base}/payments`)).status, 401);
+      assert.equal((await fetch(`${base}/expenses`)).status, 401);
+      assert.equal((await fetch(`${base}/dashboard`)).status, 200);
 
       const wrong = await fetch(`${base}/payments`, { headers: { 'x-api-key': 'salah' } });
       assert.equal(wrong.status, 401);

@@ -7,6 +7,7 @@ import { GoPayGateway, serializePayment } from './gateway.js';
 import { config } from './config.js';
 import { verifyWebhook } from './webhook.js';
 import { renderQrPng } from './qr.js';
+import { JsonExpenseStore } from './expenses.js';
 
 /**
  * REST API untuk payment gateway.
@@ -26,6 +27,7 @@ export function createApp({
   logger = console,
   apiKey = config.apiKey,
   webhookSecret = config.webhookSecret,
+  expenseStore = new JsonExpenseStore(),
 }) {
   return createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
@@ -70,6 +72,10 @@ export function createApp({
         return sendFile(res, WEB_DIR, 'index.html');
       }
 
+      if (req.method === 'GET' && (url.pathname === '/dashboard' || url.pathname === '/dashboard.html')) {
+        return sendFile(res, WEB_DIR, 'dashboard.html');
+      }
+
       if (req.method === 'GET' && url.pathname === '/app.js') {
         return sendFile(res, WEB_DIR, 'app.js');
       }
@@ -78,10 +84,42 @@ export function createApp({
         return sendFile(res, WEB_DIR, 'style.css');
       }
 
+      if (req.method === 'GET' && url.pathname === '/dashboard.js') {
+        return sendFile(res, WEB_DIR, 'dashboard.js');
+      }
+
       if (req.method === 'GET' && url.pathname === '/payments') {
         const semua = gateway.store.all();
         const urut = [...semua].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         return json(res, 200, urut.map(serializePayment));
+      }
+
+      if (req.method === 'GET' && url.pathname === '/expenses') {
+        return json(res, 200, expenseStore.all());
+      }
+
+      if (req.method === 'POST' && url.pathname === '/expenses') {
+        let body;
+        try {
+          body = await readJson(req);
+        } catch (error) {
+          return json(res, 400, { error: 'invalid_body', message: error.message });
+        }
+        try {
+          const expense = await expenseStore.create(body);
+          return json(res, 201, expense);
+        } catch (error) {
+          if (error instanceof TypeError) {
+            return json(res, 400, { error: 'invalid_expense', message: error.message });
+          }
+          throw error;
+        }
+      }
+
+      const expenseMatch = url.pathname.match(/^\/expenses\/([^/]+)$/);
+      if (req.method === 'DELETE' && expenseMatch) {
+        const deleted = await expenseStore.delete(expenseMatch[1]);
+        return deleted ? json(res, 200, { ok: true }) : json(res, 404, { error: 'not_found' });
       }
 
       const paymentMatch = url.pathname.match(/^\/payments\/([^/]+)$/);
@@ -142,6 +180,12 @@ export function createApp({
 function authorize(req, url, apiKey) {
   if (!apiKey) return true;
   if (url.pathname.startsWith('/webhooks/') || url.pathname === '/health') return true;
+  if (
+    req.method === 'GET' &&
+    ['/', '/index.html', '/dashboard', '/dashboard.html', '/app.js', '/dashboard.js', '/style.css'].includes(
+      url.pathname,
+    )
+  ) return true;
 
   const provided = req.headers['x-api-key'];
   if (!provided) return false;

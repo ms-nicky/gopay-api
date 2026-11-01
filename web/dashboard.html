@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FlowPay | Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="dashboard-page">
+  <div class="dashboard-shell">
+    <aside class="sidebar" aria-label="Sidebar navigasi">
+      <a class="sidebar__brand" href="/">
+        <span class="brand__mark">F</span>
+        <span>FlowPay</span>
+      </a>
+
+      <nav class="sidebar__nav" aria-label="Menu dashboard">
+        <a class="nav-item nav-item--active" href="#overview">Overview</a>
+        <a class="nav-item" href="#transactions">Payments</a>
+        <a class="nav-item" href="#cashflow">Pemasukan & pengeluaran</a>
+        <a class="nav-item" href="#qris">Buat QRIS</a>
+        <a class="nav-item" href="#reports">Reports</a>
+      </nav>
+
+      <div class="sidebar__support">
+        <strong>Payment gateway</strong>
+        <span>Pantau transaksi dan arus kas dalam satu tempat.</span>
+      </div>
+    </aside>
+
+    <main class="dashboard-content">
+      <header class="dashboard-header">
+        <div>
+          <p>Ringkasan merchant</p>
+          <h1>Dashboard</h1>
+        </div>
+
+        <div class="header-actions">
+          <button class="theme-toggle" type="button" data-theme-toggle aria-label="Ubah tema">
+            <span class="theme-toggle__icon">🌙</span>
+            <span class="theme-toggle__label">Gelap</span>
+          </button>
+          <a class="btn btn--secondary" href="/">Home</a>
+          <button class="btn btn--dark" id="export-csv" type="button">Export CSV</button>
+        </div>
+      </header>
+
+      <section class="api-connect" aria-label="Koneksi API">
+        <div>
+          <strong>Koneksi dashboard</strong>
+          <p id="connection-status" role="status">Menghubungkan ke data gateway...</p>
+        </div>
+        <form id="api-key-form" class="api-key-form">
+          <label class="visually-hidden" for="api-key-input">API key</label>
+          <input id="api-key-input" type="password" autocomplete="off" placeholder="API key (jika diminta)">
+          <button class="btn btn--secondary" type="submit">Simpan key</button>
+        </form>
+      </section>
+
+      <p class="dashboard-error" id="dashboard-error" role="alert" hidden></p>
+
+      <section class="stats-grid" id="overview" aria-label="Ringkasan performa">
+        <article class="stat-card">
+          <div class="stat-card__label"><span>Pemasukan lunas</span></div>
+          <div class="stat-card__value"><strong id="total-income">Rp 0</strong></div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-card__label"><span>Total pengeluaran</span></div>
+          <div class="stat-card__value"><strong id="total-expense">Rp 0</strong></div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-card__label"><span>Saldo bersih</span></div>
+          <div class="stat-card__value"><strong id="net-balance">Rp 0</strong></div>
+        </article>
+        <article class="stat-card">
+          <div class="stat-card__label"><span>Transaksi menunggu</span></div>
+          <div class="stat-card__value"><strong id="pending-count">0</strong></div>
+        </article>
+      </section>
+
+      <section class="dashboard-panels" id="reports" aria-label="Grafik dan ringkasan">
+        <article class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h3>Arus kas 7 hari</h3>
+              <p class="chart-subtitle">Pemasukan lunas dibanding pengeluaran</p>
+            </div>
+            <span class="chart-range">7 hari terakhir</span>
+          </div>
+          <div class="cashflow-chart" id="cashflow-chart" aria-label="Grafik arus kas tujuh hari"></div>
+          <div class="chart-legend">
+            <span><i class="legend-dot legend-dot--income"></i>Pemasukan</span>
+            <span><i class="legend-dot legend-dot--expense"></i>Pengeluaran</span>
+          </div>
+        </article>
+
+        <aside class="side-card">
+          <h3>Ringkasan transaksi</h3>
+          <div class="payment-mix">
+            <div class="payment-row">
+              <div class="payment-row__head"><span>Lunas</span><strong id="paid-count">0</strong></div>
+              <div class="progress progress--green"><span id="paid-progress" style="width:0%"></span></div>
+            </div>
+            <div class="payment-row">
+              <div class="payment-row__head"><span>Menunggu</span><strong id="pending-summary">0</strong></div>
+              <div class="progress progress--blue"><span id="pending-progress" style="width:0%"></span></div>
+            </div>
+            <div class="payment-row">
+              <div class="payment-row__head"><span>Gagal / kedaluwarsa</span><strong id="failed-count">0</strong></div>
+              <div class="progress progress--slate"><span id="failed-progress" style="width:0%"></span></div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="table-card" id="transactions" aria-label="Transaksi terbaru">
+        <div class="table-head">
+          <div>
+            <h3>Transaksi terbaru</h3>
+            <p class="chart-subtitle">Data langsung dari payment gateway</p>
+          </div>
+          <a class="view-link" href="/#payment-builder">Buat pembayaran</a>
+        </div>
+        <div class="table-wrap">
+          <table class="transactions-table">
+            <thead>
+              <tr><th>Referensi</th><th>Tanggal</th><th>Nominal</th><th>Status</th><th>Aksi</th></tr>
+            </thead>
+            <tbody id="transactions-body">
+              <tr><td colspan="5" class="table-empty">Memuat transaksi...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="dashboard-panels cashflow-section" id="cashflow" aria-label="Catatan arus kas">
+        <article class="table-card cashflow-ledger">
+          <div class="table-head">
+            <div>
+              <h3>Catat pengeluaran</h3>
+              <p class="chart-subtitle">Pengeluaran disimpan pada server dan tercatat di laporan.</p>
+            </div>
+          </div>
+          <form id="expense-form" class="expense-form">
+            <div class="field">
+              <label for="expense-description">Keterangan</label>
+              <input id="expense-description" name="description" maxlength="160" placeholder="Contoh: biaya internet" required>
+            </div>
+            <div class="field">
+              <label for="expense-category">Kategori</label>
+              <input id="expense-category" name="category" maxlength="60" value="Operasional" required>
+            </div>
+            <div class="field">
+              <label for="expense-amount">Nominal (Rp)</label>
+              <input id="expense-amount" name="amount" inputmode="numeric" placeholder="250.000" required>
+            </div>
+            <button class="btn btn--primary" id="save-expense" type="submit">Simpan pengeluaran</button>
+          </form>
+          <p class="form-status" id="expense-status" role="status"></p>
+
+          <div class="ledger-heading"><h3>Riwayat pengeluaran</h3></div>
+          <div class="expense-list" id="expense-list">
+            <p class="table-empty">Belum ada pengeluaran.</p>
+          </div>
+        </article>
+
+        <article class="side-card qris-card" id="qris">
+          <span class="eyebrow">QRIS</span>
+          <h3>Buat tagihan pembayaran</h3>
+          <p class="chart-subtitle">Buat QRIS dinamis berdasarkan nominal dan referensi pesanan.</p>
+          <form id="dashboard-payment-form" class="payment-form">
+            <div class="field">
+              <label for="payment-amount">Nominal (Rp)</label>
+              <input id="payment-amount" inputmode="numeric" placeholder="50.000" required>
+            </div>
+            <div class="field">
+              <label for="payment-reference">Referensi</label>
+              <input id="payment-reference" maxlength="120" placeholder="INV-001">
+            </div>
+            <button class="btn btn--primary" id="create-payment" type="submit">Buat QRIS</button>
+          </form>
+          <p class="form-status" id="payment-status" role="status"></p>
+          <div class="dashboard-qr-result" id="dashboard-qr-result" hidden>
+            <img id="dashboard-qr" alt="QRIS pembayaran">
+            <div><strong id="dashboard-qr-amount"></strong><span id="dashboard-qr-reference"></span></div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+  <script src="/dashboard.js" type="module"></script>
+</body>
+</html>

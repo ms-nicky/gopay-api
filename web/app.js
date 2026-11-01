@@ -1,5 +1,38 @@
 const el = (id) => document.getElementById(id);
 
+const themeToggleButtons = document.querySelectorAll('[data-theme-toggle]');
+const applyTheme = (theme) => {
+  document.body.dataset.theme = theme;
+  try {
+    localStorage.setItem('flowpay-theme', theme);
+  } catch {}
+
+  themeToggleButtons.forEach((button) => {
+    const icon = button.querySelector('.theme-toggle__icon');
+    const label = button.querySelector('.theme-toggle__label');
+    const isDark = theme === 'dark';
+    if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+    if (label) label.textContent = isDark ? 'Cerah' : 'Gelap';
+    button.setAttribute('aria-label', isDark ? 'Ubah tema ke cerah' : 'Ubah tema ke gelap');
+  });
+};
+
+const savedTheme = (() => {
+  try {
+    return localStorage.getItem('flowpay-theme') || 'light';
+  } catch {
+    return 'light';
+  }
+})();
+applyTheme(savedTheme);
+
+themeToggleButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    const current = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(current);
+  });
+});
+
 const formBuat = el('form-buat');
 const inputNominal = el('input-nominal');
 const inputRef = el('input-ref');
@@ -32,30 +65,16 @@ let timerPolling = null;
 let timerHitung = null;
 let nominalTerakhirDibuat = null;
 
-/** Pemisah ribuan Indonesia: 10000 jadi "10.000". */
 function formatRupiah(angka) {
   return new Intl.NumberFormat('id-ID').format(angka);
 }
 
-/** Ambil digit saja dari input, lalu abaikan pemisah ribuan yang diketik user. */
 function parseNominal(nilai) {
   const digit = nilai.replace(/\D/g, '');
   if (!digit) return NaN;
   return Number.parseInt(digit, 10);
 }
 
-function tampilkan(state) {
-  panelKosong.hidden = state !== 'kosong';
-  panelMuat.hidden = state !== 'muat';
-  panelGagal.hidden = state !== 'gagal';
-  panelHasil.hidden = state !== 'hasil';
-}
-
-/**
- * Status dari API selalu bahasa Inggris, jadi pemetaannya di satu tempat saja.
- * Panel pembayaran aktif dan riwayat harus memakai fungsi yang sama, kalau tidak
- * satu halaman bisa menampilkan `lunas` di baris atas dan `paid` di riwayat.
- */
 const LABEL_STATUS = {
   pending: 'menunggu',
   paid: 'lunas',
@@ -66,23 +85,18 @@ const LABEL_STATUS = {
 const labelStatus = (status) => LABEL_STATUS[status] ?? status;
 
 function warnaiStatus(el, status) {
+  if (!el) return;
   el.className = 'status';
   if (status === 'paid') el.classList.add('status--lunas');
   if (status === 'expired' || status === 'cancelled') el.classList.add('status--gagal');
 }
 
 function setStatusBayar(status) {
+  if (!statusBayar) return;
   statusBayar.textContent = labelStatus(status);
   warnaiStatus(statusBayar, status);
 }
 
-/**
- * Waktu selalu dalam WIB, bukan timezone browser.
- *
- * Server menyimpan UTC, jadi tanpa `timeZone` jam yang tampil ikut berubah
- * sesuai tempat laptop dibuka. Untuk kasir yang membandingkan jam bayar dengan
- * mutasi rekening, selisih satu jam itu membingungkan.
- */
 function formatWaktu(iso) {
   return new Date(iso).toLocaleTimeString('id-ID', {
     timeZone: 'Asia/Jakarta',
@@ -92,7 +106,6 @@ function formatWaktu(iso) {
   });
 }
 
-/** Kode `error` dari API, kalau `message` tidak ada. */
 const LABEL_ERROR = {
   unauthorized: 'API key ditolak.',
   invalid_body: 'Isi permintaan tidak valid.',
@@ -105,42 +118,57 @@ const LABEL_ERROR = {
 };
 
 async function request(path, options) {
-  const response = await fetch(path, options);
+  const headers = new Headers(options?.headers);
+  try {
+    const key = sessionStorage.getItem('flowpay-api-key');
+    if (key) headers.set('x-api-key', key);
+  } catch {}
+  const response = await fetch(path, { ...options, headers });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(
-      body.message ?? LABEL_ERROR[body.error] ?? `Permintaan gagal (${response.status}).`,
-    );
+    throw new Error(body.message ?? LABEL_ERROR[body.error] ?? `Permintaan gagal (${response.status}).`);
   }
   return body;
+}
+
+function tampilkan(state) {
+  if (!panelKosong || !panelMuat || !panelGagal || !panelHasil) return;
+  panelKosong.hidden = state !== 'kosong';
+  panelMuat.hidden = state !== 'muat';
+  panelGagal.hidden = state !== 'gagal';
+  panelHasil.hidden = state !== 'hasil';
 }
 
 function tampilkanHasil(pembayaran) {
   pembayaranAktif = pembayaran;
 
-  nominalBayar.textContent = `Rp ${formatRupiah(pembayaran.uniqueAmount)}`;
+  if (nominalBayar) nominalBayar.textContent = `Rp ${formatRupiah(pembayaran.uniqueAmount)}`;
 
   const selisih = pembayaran.uniqueAmount - pembayaran.baseAmount;
-  nominalAsli.textContent =
-    selisih === 0
-      ? 'Tidak ada selisih.'
-      : `Pesan Rp ${formatRupiah(pembayaran.baseAmount)}, pembayaran persis Rp ${formatRupiah(pembayaran.uniqueAmount)} agar tidak tertukar dengan order lain.`;
+  if (nominalAsli) {
+    nominalAsli.textContent =
+      selisih === 0
+        ? 'Tidak ada selisih.'
+        : `Pesan Rp ${formatRupiah(pembayaran.baseAmount)}, pembayaran persis Rp ${formatRupiah(pembayaran.uniqueAmount)} agar tidak tertukar dengan order lain.`;
+  }
 
   setStatusBayar(pembayaran.status);
-  barisTransaksi.hidden = !pembayaran.transactionId;
-  idTransaksi.textContent = pembayaran.transactionId ?? '';
-
-  gambarQris.src = `/payments/${encodeURIComponent(pembayaran.id)}/qr.png`;
-  gambarQris.alt = `QRIS untuk pembayaran Rp ${formatRupiah(pembayaran.uniqueAmount)}`;
+  if (barisTransaksi) barisTransaksi.hidden = !pembayaran.transactionId;
+  if (idTransaksi) idTransaksi.textContent = pembayaran.transactionId ?? '';
+  if (gambarQris) {
+    gambarQris.src = `/payments/${encodeURIComponent(pembayaran.id)}/qr.png`;
+    gambarQris.alt = `QRIS untuk pembayaran Rp ${formatRupiah(pembayaran.uniqueAmount)}`;
+  }
 
   tampilkan('hasil');
-  tombolBatal.hidden = pembayaran.status !== 'pending';
+  if (tombolBatal) tombolBatal.hidden = pembayaran.status !== 'pending';
 
   mulaiHitungmundur(pembayaran.expiresAt);
   mulaiPolling(pembayaran.id);
 }
 
 function mulaiHitungmundur(expiresAt) {
+  if (!batasBayar) return;
   const akhir = new Date(expiresAt).getTime();
   stopHitungmundur();
 
@@ -165,12 +193,6 @@ function stopPolling() {
   timerPolling = null;
 }
 
-/**
- * Polling status.
- *
- * Jeda dibuat_escalating supaya pembayaran yang sudah selesai tidak ditanya
- * server selamanya, dan server yang lambat tidak membuat antrean fetch menumpuk.
- */
 function mulaiPolling(id) {
   stopPolling();
   let percobaan = 0;
@@ -183,9 +205,9 @@ function mulaiPolling(id) {
       if (pembayaran.status !== pembayaranAktif.status) {
         pembayaranAktif = pembayaran;
         setStatusBayar(pembayaran.status);
-        barisTransaksi.hidden = !pembayaran.transactionId;
-        idTransaksi.textContent = pembayaran.transactionId ?? '';
-        tombolBatal.hidden = pembayaran.status !== 'pending';
+        if (barisTransaksi) barisTransaksi.hidden = !pembayaran.transactionId;
+        if (idTransaksi) idTransaksi.textContent = pembayaran.transactionId ?? '';
+        if (tombolBatal) tombolBatal.hidden = pembayaran.status !== 'pending';
         if (pembayaran.status !== 'pending') stopHitungmundur();
       }
 
@@ -209,6 +231,7 @@ function mulaiPolling(id) {
 }
 
 function tampilkanGagal(pesan) {
+  if (!pesanGagal) return;
   stopPolling();
   stopHitungmundur();
   pesanGagal.textContent = pesan;
@@ -216,16 +239,17 @@ function tampilkanGagal(pesan) {
 }
 
 async function refreshRiwayat() {
+  if (!daftarRiwayat || !riwayatKosong) return;
   try {
     const pembayaran = await request('/payments');
     gambarRiwayat(pembayaran);
   } catch {
-    // Riwayat bersifat tambahan. Kalau gagal, pembayaran yang sedang berjalan
-    // tidak boleh ikut terganggu.
+    // Riwayat bersifat tambahan.
   }
 }
 
 function gambarRiwayat(pembayaran) {
+  if (!daftarRiwayat || !riwayatKosong) return;
   riwayatKosong.hidden = pembayaran.length > 0;
   daftarRiwayat.replaceChildren();
 
@@ -251,81 +275,87 @@ function gambarRiwayat(pembayaran) {
   }
 }
 
-formBuat.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  statusBuat.textContent = '';
-
-  const amount = parseNominal(inputNominal.value);
-  if (!Number.isInteger(amount) || amount <= 0) {
-    errorNominal.textContent = 'Masukkan nominal angka lebih besar dari nol.';
-    errorNominal.hidden = false;
-    inputNominal.setAttribute('aria-invalid', 'true');
-    inputNominal.focus();
-    return;
-  }
-
-  errorNominal.hidden = true;
-  inputNominal.removeAttribute('aria-invalid');
-  tombolBuat.disabled = true;
-  statusBuat.textContent = 'Membuat QRIS...';
-  stopPolling();
-  stopHitungmundur();
-  tampilkan('muat');
-
-  try {
-    const pembayaran = await request('/payments', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        amount,
-        reference: inputRef.value.trim() || undefined,
-      }),
-    });
-
-    nominalTerakhirDibuat = amount;
-    inputNominal.value = '';
-    inputRef.value = '';
+if (formBuat && inputNominal && inputRef && errorNominal && tombolBuat && statusBuat) {
+  formBuat.addEventListener('submit', async (event) => {
+    event.preventDefault();
     statusBuat.textContent = '';
-    tampilkanHasil(pembayaran);
-    await refreshRiwayat();
-  } catch (error) {
-    tombolBuat.disabled = false;
-    statusBuat.textContent = '';
-    tampilkanGagal(error.message);
-  } finally {
-    tombolBuat.disabled = false;
-  }
-});
 
-tombolCoba.addEventListener('click', () => {
-  if (nominalTerakhirDibuat === null) {
-    tampilkan('kosong');
-    return;
-  }
-  inputNominal.value = String(nominalTerakhirDibuat);
-  inputNominal.focus();
-  tampilkan('kosong');
-});
+    const amount = parseNominal(inputNominal.value);
+    if (!Number.isInteger(amount) || amount <= 0) {
+      errorNominal.textContent = 'Masukkan nominal angka lebih besar dari nol.';
+      errorNominal.hidden = false;
+      inputNominal.setAttribute('aria-invalid', 'true');
+      inputNominal.focus();
+      return;
+    }
 
-tombolBatal.addEventListener('click', async () => {
-  if (!pembayaranAktif) return;
-
-  tombolBatal.disabled = true;
-  statusAksi.textContent = 'Membatalkan...';
-  try {
-    await request(`/payments/${encodeURIComponent(pembayaranAktif.id)}/cancel`, { method: 'POST' });
+    errorNominal.hidden = true;
+    inputNominal.removeAttribute('aria-invalid');
+    tombolBuat.disabled = true;
+    statusBuat.textContent = 'Membuat QRIS...';
     stopPolling();
     stopHitungmundur();
-    pembayaranAktif = null;
-    statusAksi.textContent = 'Pembayaran dibatalkan.';
-    tampilkan('kosong');
-    await refreshRiwayat();
-  } catch (error) {
-    statusAksi.textContent = error.message;
-  } finally {
-    tombolBatal.disabled = false;
-  }
-});
+    tampilkan('muat');
 
-tampilkan('kosong');
-refreshRiwayat();
+    try {
+      const pembayaran = await request('/payments', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          reference: inputRef.value.trim() || undefined,
+        }),
+      });
+
+      nominalTerakhirDibuat = amount;
+      inputNominal.value = '';
+      inputRef.value = '';
+      statusBuat.textContent = '';
+      tampilkanHasil(pembayaran);
+      await refreshRiwayat();
+    } catch (error) {
+      tombolBuat.disabled = false;
+      statusBuat.textContent = '';
+      tampilkanGagal(error.message);
+    } finally {
+      tombolBuat.disabled = false;
+    }
+  });
+
+  if (tombolCoba) {
+    tombolCoba.addEventListener('click', () => {
+      if (nominalTerakhirDibuat === null) {
+        tampilkan('kosong');
+        return;
+      }
+      inputNominal.value = String(nominalTerakhirDibuat);
+      inputNominal.focus();
+      tampilkan('kosong');
+    });
+  }
+
+  if (tombolBatal) {
+    tombolBatal.addEventListener('click', async () => {
+      if (!pembayaranAktif) return;
+
+      tombolBatal.disabled = true;
+      statusAksi.textContent = 'Membatalkan...';
+      try {
+        await request(`/payments/${encodeURIComponent(pembayaranAktif.id)}/cancel`, { method: 'POST' });
+        stopPolling();
+        stopHitungmundur();
+        pembayaranAktif = null;
+        statusAksi.textContent = 'Pembayaran dibatalkan.';
+        tampilkan('kosong');
+        await refreshRiwayat();
+      } catch (error) {
+        statusAksi.textContent = error.message;
+      } finally {
+        tombolBatal.disabled = false;
+      }
+    });
+  }
+
+  tampilkan('kosong');
+  refreshRiwayat();
+}

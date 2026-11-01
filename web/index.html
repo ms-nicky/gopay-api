@@ -1,100 +1,282 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kasir QRIS</title>
-<link rel="stylesheet" href="/style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FlowPay | Payment Gateway</title>
+  <meta name="description" content="Platform payment gateway modern untuk menerima pembayaran digital dan memantau transaksi secara real-time.">
+  <link rel="stylesheet" href="/style.css">
 </head>
-<body>
-<main class="app">
+<body class="theme-home">
+  <header class="topbar">
+    <div class="container nav">
+      <a href="/" class="brand" aria-label="FlowPay home">
+        <span class="brand__mark">F</span>
+        <span>FlowPay</span>
+      </a>
 
-  <section class="panel panel--kartu" aria-labelledby="judul-buat">
-    <h1 id="judul-buat">Buat pembayaran</h1>
-    <p class="panel__note">Masukkan nominal, lalu QRIS dibuat untuk pembayaran itu.</p>
+      <nav class="nav__links" aria-label="Navigasi utama">
+        <a href="#solutions">Solutions</a>
+        <a href="#features">Features</a>
+        <a href="#system-overview">Sistem</a>
+        <a href="#features">Resources</a>
+      </nav>
 
-    <form id="form-buat" novalidate>
-      <div class="field">
-        <label for="input-nominal">Nominal (Rp)</label>
-        <input id="input-nominal" name="nominal" type="text" inputmode="numeric"
-               autocomplete="off" placeholder="10.000" required>
-        <p class="field__error" id="error-nominal" role="alert" hidden></p>
-      </div>
-
-      <div class="field">
-        <label for="input-ref">Referensi <span class="field__opsional">opsional</span></label>
-        <input id="input-ref" name="referensi" type="text" autocomplete="off"
-               placeholder="INV-001">
-      </div>
-
-      <button type="submit" class="tombol tombol--utama" id="tombol-buat">
-        Buat QRIS
-      </button>
-      <p class="form-status" id="status-buat" role="status"></p>
-    </form>
-  </section>
-
-  <section class="panel panel--panggung" aria-labelledby="judul-hasil">
-    <h2 id="judul-hasil">Pembayaran berjalan</h2>
-
-    <div class="kosong" id="panel-kosong">
-      <p>Belum ada pembayaran aktif.</p>
-      <p class="kosong__saran">Isi nominal di sebelah untuk memulai.</p>
-    </div>
-
-    <div class="muat" id="panel-muat" hidden>
-      <span class="muat__spinner" aria-hidden="true"></span>
-      <p>Membuat QRIS dan menunggu pembayaran masuk.</p>
-    </div>
-
-    <div class="gagal" id="panel-gagal" role="alert" hidden>
-      <p id="pesan-gagal"></p>
-      <button type="button" class="tombol" id="tombol-coba">Coba lagi</button>
-    </div>
-
-    <div class="hasil" id="panel-hasil" hidden>
-      <div class="hasil__kiri">
-        <img id="gambar-qris" class="hasil__qr" alt="QRIS pembayaran" width="320" height="320">
-        <p class="hasil__keterangan">Pemohon pindai dengan aplikasi pembayaran apa pun.</p>
-      </div>
-
-      <div class="hasil__kanan">
-        <p class="label">PEMBAYAR MASAKAN DIBAYAR</p>
-        <p class="nominal-bayar" id="nominal-bayar"></p>
-        <p class="nominal-asli" id="nominal-asli"></p>
-
-        <dl class="rincian">
-          <div class="rincian__baris">
-            <dt>Status</dt>
-            <dd><span class="status" id="status-bayar">menunggu</span></dd>
-          </div>
-          <div class="rincian__baris">
-            <dt>Batas bayar</dt>
-            <dd id="batas-bayar"></dd>
-          </div>
-          <div class="rincian__baris" id="baris-transaksi" hidden>
-            <dt>Id transaksi</dt>
-            <dd class="mono" id="id-transaksi"></dd>
-          </div>
-        </dl>
-
-        <button type="button" class="tombol tombol--batal" id="tombol-batal">
-          Batalkan pembayaran
+      <div class="nav__actions">
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Ubah tema">
+          <span class="theme-toggle__icon">🌙</span>
+          <span class="theme-toggle__label">Gelap</span>
         </button>
-        <p class="form-status" id="status-aksi" role="status"></p>
+        <a class="btn btn--ghost" href="/dashboard">Masuk dashboard</a>
+        <a class="btn btn--primary" href="/dashboard">Open dashboard</a>
       </div>
     </div>
-  </section>
+  </header>
 
-  <section class="panel panel--daftar" aria-labelledby="judul-riwayat">
-    <h2 id="judul-riwayat">Riwayat</h2>
-    <div id="riwayat-kosong" class="kosong kosong--kecil">
-      <p>Belum ada pembayaran tercatat.</p>
-    </div>
-    <ul class="riwayat" id="daftar-riwayat"></ul>
-  </section>
+  <main class="container home-shell">
+    <section class="hero">
+      <div class="hero__content">
+        <span class="eyebrow">Modern payment infrastructure</span>
+        <h1>Payment flows that feel instant for your customers.</h1>
+        <p>
+          Kelola penerimaan pembayaran, QRIS, settlement, dan analitik bisnis dalam satu platform
+          yang cepat, aman, dan siap scale untuk merchant modern.
+        </p>
 
-</main>
-<script src="/app.js" type="module"></script>
+        <div class="hero__actions">
+          <a class="btn btn--primary" href="#payment-builder">Get started</a>
+          <a class="btn btn--secondary" href="/dashboard">View dashboard</a>
+        </div>
+
+        <ul class="mini-metrics" aria-label="Fungsi utama FlowPay">
+          <li>
+            <strong>QRIS</strong>
+            <span>pembayaran dinamis</span>
+          </li>
+          <li>
+            <strong>Cashflow</strong>
+            <span>pemasukan & pengeluaran</span>
+          </li>
+          <li>
+            <strong>Analytics</strong>
+            <span>ringkasan transaksi</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="hero__visual" aria-label="Ringkasan dashboard">
+        <div class="glass-card">
+          <div class="card-head">
+            <span class="chip">Contoh dashboard</span>
+            <span class="trend positive">QRIS · Cashflow</span>
+          </div>
+
+          <div class="amount-block">
+            <span>Live revenue saat tersedia</span>
+            <strong>Terhubung ke API</strong>
+          </div>
+
+          <div class="chart-mini" aria-hidden="true">
+            <span style="height: 36%"></span>
+            <span style="height: 58%"></span>
+            <span style="height: 48%"></span>
+            <span style="height: 72%"></span>
+            <span style="height: 52%"></span>
+            <span style="height: 88%"></span>
+            <span style="height: 100%"></span>
+          </div>
+
+          <div class="mini-list">
+            <div>
+              <span>Pemasukan pembayaran</span>
+              <strong>Otomatis</strong>
+            </div>
+            <div>
+              <span>Pengeluaran</span>
+              <strong>Tercatat</strong>
+            </div>
+            <div>
+              <span>Laporan</span>
+              <strong>CSV</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="feature-strip" id="solutions">
+      <div class="info-pill">
+        <span class="dot"></span>
+        Secure by design
+      </div>
+      <div class="info-pill">
+        <span class="dot"></span>
+        Real-time reconciliation
+      </div>
+      <div class="info-pill">
+        <span class="dot"></span>
+        Multi-channel payouts
+      </div>
+    </section>
+
+    <section class="feature-section" id="features">
+      <div class="section-heading">
+        <span class="eyebrow">Why teams choose us</span>
+        <h2>Built for scale, clarity, and customer trust.</h2>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card reveal-card">
+          <div class="icon-box icon-box--blue">₿</div>
+          <h3>Fast settlement</h3>
+          <p>Auto-reconcile incoming payments and reduce manual admin work across channels.</p>
+        </article>
+
+        <article class="feature-card reveal-card">
+          <div class="icon-box icon-box--navy">✓</div>
+          <h3>Relationship security</h3>
+          <p>Authentication, verification, and monitoring keep every transaction protected.</p>
+        </article>
+
+        <article class="feature-card reveal-card">
+          <div class="icon-box icon-box--cyan">◎</div>
+          <h3>Insightful analytics</h3>
+          <p>Track conversion, revenue mix, and performance by source in one live view.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="system-overview" aria-labelledby="system-overview-title">
+      <div class="section-heading compact">
+        <span class="eyebrow">Sistem yang kami sediakan</span>
+        <h2 id="system-overview-title">Semua fungsi operasional payment gateway dalam satu ekosistem.</h2>
+      </div>
+
+      <div class="system-grid">
+        <article class="system-card reveal-card">
+          <div class="system-card__icon">💳</div>
+          <h3>Pembayaran QRIS</h3>
+          <p>Buat tagihan digital secara cepat, lalu tampilkan QRIS untuk pelanggan membayar melalui aplikasi e-wallet atau transfer.</p>
+        </article>
+        <article class="system-card reveal-card">
+          <div class="system-card__icon">📊</div>
+          <h3>Pencatatan pemasukan</h3>
+          <p>Tracking transaksi masuk dengan nilai, referensi, dan status pembayaran secara real-time untuk audit 24 jam.</p>
+        </article>
+        <article class="system-card reveal-card">
+          <div class="system-card__icon">💸</div>
+          <h3>Pencatatan pengeluaran</h3>
+          <p>Mengawasi biaya operasional, komisi, dan pengeluaran internal agar arus kas lebih terkontrol dan bisa dipantau.</p>
+        </article>
+        <article class="system-card reveal-card">
+          <div class="system-card__icon">📈</div>
+          <h3>Dashboard analytics</h3>
+          <p>Melihat performa revenue, status payment, dan tren transaksi melalui grafik yang mudah dibaca oleh tim operasional.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="builder-section" id="payment-builder">
+      <div class="builder-card builder-card--form panel panel--kartu" aria-labelledby="judul-buat">
+        <div class="builder-title">
+          <span class="eyebrow">Quick create</span>
+          <h2 id="judul-buat">Buat pembayaran</h2>
+        </div>
+        <p class="panel__note">Masukkan nominal, lalu QRIS dibuat untuk pembayaran itu.</p>
+
+        <form id="form-buat" novalidate>
+          <div class="field">
+            <label for="input-nominal">Nominal (Rp)</label>
+            <input id="input-nominal" name="nominal" type="text" inputmode="numeric"
+                   autocomplete="off" placeholder="10.000" required>
+            <p class="field__error" id="error-nominal" role="alert" hidden></p>
+          </div>
+
+          <div class="field">
+            <label for="input-ref">Referensi <span class="field__opsional">opsional</span></label>
+            <input id="input-ref" name="referensi" type="text" autocomplete="off"
+                   placeholder="INV-001">
+          </div>
+
+          <button type="submit" class="tombol tombol--utama" id="tombol-buat">
+            Buat QRIS
+          </button>
+          <p class="form-status" id="status-buat" role="status"></p>
+        </form>
+      </div>
+
+      <div class="builder-card builder-card--result panel panel--panggung" aria-labelledby="judul-hasil">
+        <div class="builder-title">
+          <span class="eyebrow">Active payment</span>
+          <h2 id="judul-hasil">Pembayaran berjalan</h2>
+        </div>
+
+        <div class="kosong" id="panel-kosong">
+          <p>Belum ada pembayaran aktif.</p>
+          <p class="kosong__saran">Isi nominal di sebelah untuk memulai.</p>
+        </div>
+
+        <div class="muat" id="panel-muat" hidden>
+          <span class="muat__spinner" aria-hidden="true"></span>
+          <p>Membuat QRIS dan menunggu pembayaran masuk.</p>
+        </div>
+
+        <div class="gagal" id="panel-gagal" role="alert" hidden>
+          <p id="pesan-gagal"></p>
+          <button type="button" class="tombol" id="tombol-coba">Coba lagi</button>
+        </div>
+
+        <div class="hasil" id="panel-hasil" hidden>
+          <div class="hasil__kiri">
+            <img id="gambar-qris" class="hasil__qr" alt="QRIS pembayaran" width="320" height="320">
+            <p class="hasil__keterangan">Pemohon pindai dengan aplikasi pembayaran apa pun.</p>
+          </div>
+
+          <div class="hasil__kanan">
+            <p class="label">Total tagihan</p>
+            <p class="nominal-bayar" id="nominal-bayar"></p>
+            <p class="nominal-asli" id="nominal-asli"></p>
+
+            <dl class="rincian">
+              <div class="rincian__baris">
+                <dt>Status</dt>
+                <dd><span class="status" id="status-bayar">menunggu</span></dd>
+              </div>
+              <div class="rincian__baris">
+                <dt>Batas bayar</dt>
+                <dd id="batas-bayar"></dd>
+              </div>
+              <div class="rincian__baris" id="baris-transaksi" hidden>
+                <dt>Id transaksi</dt>
+                <dd class="mono" id="id-transaksi"></dd>
+              </div>
+            </dl>
+
+            <button type="button" class="tombol tombol--batal" id="tombol-batal">
+              Batalkan pembayaran
+            </button>
+            <p class="form-status" id="status-aksi" role="status"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="history-section" aria-labelledby="judul-riwayat">
+      <div class="history-header">
+        <div>
+          <span class="eyebrow">Recent activity</span>
+          <h2 id="judul-riwayat">Riwayat transaksi</h2>
+        </div>
+        <a href="/dashboard" class="view-link">Open analytics</a>
+      </div>
+
+      <div id="riwayat-kosong" class="kosong kosong--kecil">
+        <p>Belum ada pembayaran tercatat.</p>
+      </div>
+      <ul class="riwayat" id="daftar-riwayat"></ul>
+    </section>
+  </main>
+
+  <script src="/app.js" type="module"></script>
 </body>
 </html>
